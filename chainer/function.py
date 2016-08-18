@@ -1,6 +1,8 @@
 import collections
+import contextlib
 import os
 import six
+import threading
 import traceback
 import weakref
 
@@ -9,6 +11,18 @@ from chainer import cuda
 from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
+
+
+_thread_local = threading.local()
+_thread_local.eval_mode = False
+
+
+@contextlib.contextmanager
+def evaluation_mode():
+    default = _thread_local.eval_mode
+    _thread_local.eval_mode = True
+    yield
+    _thread_local.eval_mode = default
 
 
 class Function(object):
@@ -142,7 +156,14 @@ class Function(object):
         out_v = flag.aggregate_flags([x.volatile for x in inputs])
         ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
 
-        if out_v != 'on':
+        if out_v == 'on':
+            build_graph = False
+        elif out_v == 'off':
+            build_graph = True
+        else:
+            build_graph = not _thread_local.eval_mode
+
+        if build_graph:
             # Topological ordering
             self.rank = max([x.rank for x in inputs]) if inputs else 0
             # Backward edges
