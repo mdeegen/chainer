@@ -28,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U pip wheel
         pip install flake8 pytest pytest-cov codecov
-        pip install -e .[all]
+        pip install chainer --no-cache-dir -vvvv
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         python setup.py sdist
         pip install dist/*.tar.gz
